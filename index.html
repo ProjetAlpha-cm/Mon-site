@@ -2,13 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Carte ARG finale</title>
+<title>Carte ARG</title>
 <style>
 body {margin:0; background:#0b0b12; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; font-family:sans-serif; color:#fff;}
 .map-container {position:relative; display:inline-block; max-width:100%; max-height:100vh; overflow:auto;}
 .map-container img.Map {display:block; width:100%; height:auto;}
-
-/* POINTS */
 .point {
   position:absolute;
   width:100px;
@@ -18,28 +16,11 @@ body {margin:0; background:#0b0b12; display:flex; justify-content:center; align-
   animation: pulse 1.5s infinite;
   filter: drop-shadow(0 0 15px #00ffcc);
 }
-.point img { display:block; width:100%; height:100%; }
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(1); opacity:1; }
   50% { transform: translate(-50%, -50%) scale(1.1); opacity:0.8; }
   100% { transform: translate(-50%, -50%) scale(1); opacity:1; }
 }
-@keyframes glitch {
-  0% { clip: rect(0, 100px, 100px, 0); transform: translate(0);}
-  20% { clip: rect(10px, 100px, 80px, 0); transform: translate(-2px, -2px);}
-  40% { clip: rect(20px, 100px, 90px, 0); transform: translate(2px, 2px);}
-  60% { clip: rect(0, 100px, 100px, 0); transform: translate(-1px,1px);}
-  80% { clip: rect(15px, 100px, 85px, 0); transform: translate(1px,-1px);}
-  100% { clip: rect(0, 100px, 100px, 0); transform: translate(0);}
-}
-.point:hover {
-  animation: pulse 1.5s infinite, glitch 0.3s infinite;
-  filter: drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 10px #00ffff);
-}
-
-/* POPUP */
-.popup-glitch { animation: glitch 0.2s infinite alternate; }
-
 #admin-btn {position:fixed; top:10px; right:10px; background:#222; color:#fff; border:1px solid #555; border-radius:6px; padding:6px 10px; cursor:pointer;}
 #edit-hint {position:fixed; top:50px; right:10px; background:rgba(0,0,0,0.6); padding:5px 8px; border-radius:4px; font-size:13px; display:none;}
 </style>
@@ -58,156 +39,153 @@ body {margin:0; background:#0b0b12; display:flex; justify-content:center; align-
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
-const ADMIN_ID="admin";
-const ADMIN_PWD="1234";
-const POINT_IMG="point.gif"; // GIF agrandi
-let editMode=false;
-const adminBtn=document.getElementById("admin-btn");
-const editHint=document.getElementById("edit-hint");
-const mapContainer=document.getElementById("map-container");
-const MapImage=document.getElementById("Map");
+const ADMIN_ID = "admin";
+const ADMIN_PWD = "1234";
+const POINT_IMG = "point.gif"; // GIF agrandi via CSS
 
-// --- Sons aléatoires ---
-const sounds=["sound1.mp3","sound2.mp3","sound3.mp3"];
-function playRandomSound(){const s=new Audio(sounds[Math.floor(Math.random()*sounds.length)]);s.volume=0.5;s.play();}
+let editMode = false;
+const adminBtn = document.getElementById("admin-btn");
+const editHint = document.getElementById("edit-hint");
+const mapContainer = document.getElementById("map-container");
+const MapImage = document.getElementById("Map");
 
 // --- Firebase config ---
 const firebaseConfig = {
-  apiKey: "AIzaSyCPMSVPXjvfnu7ZPjVQPpl2DWmWqUxqtmU",
-  authDomain: "pointpa-9340d.firebaseapp.com",
-  databaseURL: "https://pointpa-9340d-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pointpa-9340d",
-  storageBucket: "pointpa-9340d.firebasestorage.app",
-  messagingSenderId: "6068299778",
-  appId: "1:6068299778:web:3c35e60025d7bdbc131f1b"
+  apiKey: "TON_API_KEY",
+  authDomain: "TON_PROJET.firebaseapp.com",
+  databaseURL: "https://TON_PROJET.firebaseio.com",
+  projectId: "TON_PROJET",
+  storageBucket: "TON_PROJET.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
 };
 firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
+const db = firebase.database();
 
 // --- Crée un point ---
-function createPoint(x,y,type,content,enigme,code){
-  const point=document.createElement("div");
-  point.className="point";
-  point.dataset.x=x;
-  point.dataset.y=y;
-  point.dataset.type=type;
-  point.dataset.content=content;
-  point.dataset.enigme=enigme;
-  point.dataset.code=code||"";
+function createPoint(xPercent, yPercent, url) {
+  const point = document.createElement("div");
+  point.className = "point";
+  point.dataset.x = xPercent;
+  point.dataset.y = yPercent;
+  point.dataset.img = url;
 
-  const img=document.createElement("img");
-  img.src=POINT_IMG;
-  img.alt="Point lumineux";
+  const img = document.createElement("img");
+  img.src = POINT_IMG;
+  img.alt = "Point lumineux";
+  img.style.width = "100%";
+  img.style.height = "100%";
+
   point.appendChild(img);
   mapContainer.appendChild(point);
   updatePoints();
 
-  point.addEventListener("click",ev=>{
+  // --- Mini-énigme popup ---
+  point.addEventListener("click", (ev) => {
     ev.stopPropagation();
-    playRandomSound();
-    const popup=document.createElement("div");
-    popup.style.position="fixed";
-    popup.style.top=0; popup.style.left=0; popup.style.width="100%"; popup.style.height="100%";
-    popup.style.background="rgba(0,0,0,0.9)"; popup.style.display="flex"; popup.style.flexDirection="column";
-    popup.style.justifyContent="center"; popup.style.alignItems="center"; popup.style.zIndex=9999;
-    popup.style.padding="20px"; popup.style.textAlign="center";
-    popup.classList.add("popup-glitch");
+    const imageUrl = point.dataset.img;
+    const popup = document.createElement("div");
+    popup.style.position = "fixed";
+    popup.style.top = 0;
+    popup.style.left = 0;
+    popup.style.width = "100%";
+    popup.style.height = "100%";
+    popup.style.background = "rgba(0,0,0,0.9)";
+    popup.style.display = "flex";
+    popup.style.flexDirection = "column";
+    popup.style.justifyContent = "center";
+    popup.style.alignItems = "center";
+    popup.style.zIndex = 9999;
 
-    const enig=document.createElement("div");
-    enig.textContent=enigme||"Mini-énigme...";
-    enig.style.color="#00ffcc"; enig.style.fontSize="20px"; enig.style.marginBottom="20px";
-    popup.appendChild(enig);
+    const imgPopup = document.createElement("img");
+    imgPopup.src = imageUrl;
+    imgPopup.style.maxWidth = "80%";
+    imgPopup.style.maxHeight = "50%";
+    imgPopup.style.border = "4px solid #00ffcc";
+    imgPopup.style.borderRadius = "8px";
+    imgPopup.style.marginBottom = "20px";
 
-    if(code){
-      const input=document.createElement("input");
-      input.placeholder="Entrez le code"; input.style.padding="8px"; input.style.fontSize="16px"; input.style.marginBottom="10px";
-      const btn=document.createElement("button");
-      btn.textContent="Valider"; btn.style.padding="8px 12px"; btn.style.cursor="pointer";
-      btn.addEventListener("click",()=>{if(input.value===code) showContent(type,content,popup); else alert("Code incorrect !");});
-      popup.appendChild(input); popup.appendChild(btn);
-    }else showContent(type,content,popup);
+    const enigme = document.createElement("div");
+    enigme.textContent = "Mini-énigme : Quel est le code secret visible sur l'image ?";
+    enigme.style.color = "#00ffcc";
+    enigme.style.fontSize = "20px";
+    enigme.style.textAlign = "center";
 
+    popup.appendChild(imgPopup);
+    popup.appendChild(enigme);
     document.body.appendChild(popup);
-    popup.addEventListener("click",e=>{if(e.target===popup) popup.remove();});
-  });
-}
 
-// --- Affiche contenu selon type ---
-function showContent(type,content,popup){
-  if(type==="image"){
-    const img=document.createElement("img");
-    img.src=content; img.style.maxWidth="80%"; img.style.maxHeight="50%";
-    img.style.border="4px solid #00ffcc"; img.style.borderRadius="8px"; img.style.marginTop="10px";
-    popup.appendChild(img);
-  }else if(type==="lien"){
-    const a=document.createElement("a"); a.href=content; a.target="_blank"; a.textContent=content;
-    a.style.color="#00ffcc"; a.style.fontSize="18px"; a.style.marginTop="10px";
-    popup.appendChild(a);
-  }else if(type==="texte"){
-    const div=document.createElement("div"); div.textContent=content;
-    div.style.color="#00ffcc"; div.style.fontSize="18px"; div.style.marginTop="10px";
-    popup.appendChild(div);
-  }
+    popup.addEventListener("click", () => {
+      popup.remove();
+    });
+  });
 }
 
 // --- Repositionne points ---
-function updatePoints(){
-  const rect=MapImage.getBoundingClientRect();
-  document.querySelectorAll(".point").forEach(p=>{
-    const x=parseFloat(p.dataset.x); const y=parseFloat(p.dataset.y);
-    p.style.left=(x*rect.width/100)+"px"; p.style.top=(y*rect.height/100)+"px";
+function updatePoints() {
+  const rect = MapImage.getBoundingClientRect();
+  document.querySelectorAll(".point").forEach(p => {
+    const x = parseFloat(p.dataset.x);
+    const y = parseFloat(p.dataset.y);
+    p.style.left = (x * rect.width / 100) + "px";
+    p.style.top = (y * rect.height / 100) + "px";
   });
 }
+window.addEventListener("resize", updatePoints);
 
 // --- Charger points depuis Firebase ---
-function loadPoints(){
-  db.ref('points').on('value',snapshot=>{
-    mapContainer.querySelectorAll('.point').forEach(p=>p.remove());
-    const pts=snapshot.val();
-    if(pts) Object.values(pts).forEach(p=>createPoint(p.x,p.y,p.type,p.content,p.enigme,p.code));
+function loadPoints() {
+  db.ref('points').on('value', snapshot => {
+    mapContainer.querySelectorAll('.point').forEach(p => p.remove());
+    const points = snapshot.val();
+    if(points){
+      Object.values(points).forEach(p => createPoint(p.x, p.y, p.url));
+    }
   });
 }
 
 // --- Ajouter point Firebase ---
-function savePointFirebase(x,y,type,content,enigme,code){
-  const newRef=db.ref('points').push();
-  newRef.set({x:x,y:y,type:type,content:content,enigme:enigme,code:code});
+function savePointFirebase(xPercent, yPercent, url){
+  const newRef = db.ref('points').push();
+  newRef.set({x: xPercent, y: yPercent, url: url});
 }
 
 // --- Admin login ---
-adminBtn.addEventListener("click",()=>{
+adminBtn.addEventListener("click", () => {
   if(!editMode){
-    const id=prompt("Identifiant admin :"); const pwd=prompt("Mot de passe :");
-    if(id===ADMIN_ID && pwd===ADMIN_PWD){editMode=true; editHint.style.display="block"; adminBtn.textContent="🚪 Quitter édition";}
-    else alert("Mauvais identifiant ou mot de passe.");
-  }else{editMode=false; editHint.style.display="none"; adminBtn.textContent="👑 Admin";}
+    const id = prompt("Identifiant admin :");
+    const pwd = prompt("Mot de passe :");
+    if(id===ADMIN_ID && pwd===ADMIN_PWD){
+      editMode = true;
+      editHint.style.display = "block";
+      adminBtn.textContent = "🚪 Quitter édition";
+    } else alert("Mauvais identifiant ou mot de passe.");
+  } else {
+    editMode=false;
+    editHint.style.display="none";
+    adminBtn.textContent="👑 Admin";
+  }
 });
 
 // --- Ajouter point au clic ---
-mapContainer.addEventListener("click",e=>{
+mapContainer.addEventListener("click", e => {
   if(!editMode) return;
-  const rect=MapImage.getBoundingClientRect();
-  const xPercent=((e.clientX-rect.left)/rect.width)*100;
-  const yPercent=((e.clientY-rect.top)/rect.height)*100;
-
-  const type=prompt("Type de contenu : image / lien / texte").toLowerCase();
-  if(!["image","lien","texte"].includes(type)) return;
-  const content=prompt("Entrez le contenu (URL ou texte)");
-  const enigme=prompt("Entrez le texte de l’énigme à afficher :");
-  const useCode=confirm("Voulez-vous un code secret ?");
-  const code=useCode?prompt("Entrez le code secret :"):"";
-
-  createPoint(xPercent,yPercent,type,content,enigme,code);
-  savePointFirebase(xPercent,yPercent,type,content,enigme,code);
+  const rect = MapImage.getBoundingClientRect();
+  const xPercent = ((e.clientX - rect.left)/rect.width)*100;
+  const yPercent = ((e.clientY - rect.top)/rect.height)*100;
+  const url = prompt("Entre l’URL de l’image à afficher au clic :");
+  if(!url) return;
+  createPoint(xPercent,yPercent,url);
+  savePointFirebase(xPercent,yPercent,url);
 });
 
-// --- Initialisation après chargement image ---
-MapImage.addEventListener("load",()=>{updatePoints(); loadPoints();});
-if(MapImage.complete) {updatePoints(); loadPoints();}
+// --- Init ---
+loadPoints();
 </script>
 
 </body>
 </html>
+
 
 
 
