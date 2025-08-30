@@ -1,11 +1,174 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Mon site gratuit</title>
+<meta charset="utf-8">
+<title>Carte Admin + JSON serveur</title>
+<style>
+body {
+  margin: 0;
+  background: #0b0b12;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  font-family: sans-serif;
+  color: #fff;
+}
+.map-container {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 100vh;
+  overflow: auto;
+}
+.map-container img.Map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.point {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+#admin-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #222;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+#edit-hint {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  display: none;
+}
+</style>
 </head>
 <body>
-  <h1>Bienvenue sur mon site 😎</h1>
-  <p>Fait avec GitHub Pages + Freenom, 100% gratuit.</p>
+
+<div class="map-container" id="map-container">
+  <img src="ma_carte.png" alt="Map" class="Map" id="Map">
+</div>
+
+<button id="admin-btn">👑 Admin</button>
+<div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
+
+<script>
+const ADMIN_ID = "admin";    // ton ID
+const ADMIN_PWD = "1234";    // ton mot de passe
+const POINT_IMG = "point.gif"; // ton gif lumineux
+const JSON_FILE = "points.json"; // fichier JSON côté serveur
+
+let editMode = false;
+const adminBtn = document.getElementById("admin-btn");
+const editHint = document.getElementById("edit-hint");
+const mapContainer = document.getElementById("map-container");
+const MapImage = document.getElementById("Map");
+
+// === Crée un point
+function createPoint(xPercent, yPercent, url) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.className = "point";
+  a.dataset.x = xPercent;
+  a.dataset.y = yPercent;
+
+  const img = document.createElement("img");
+  img.src = POINT_IMG;
+  img.width = 32;
+  img.height = 32;
+  img.alt = "Point lumineux";
+
+  a.appendChild(img);
+  mapContainer.appendChild(a);
+  updatePoints();
+}
+
+// === Repositionne les points responsive
+function updatePoints() {
+  const rect = MapImage.getBoundingClientRect();
+  document.querySelectorAll(".point").forEach(a => {
+    const x = parseFloat(a.dataset.x);
+    const y = parseFloat(a.dataset.y);
+    a.style.left = (x * rect.width / 100) + "px";
+    a.style.top = (y * rect.height / 100) + "px";
+  });
+}
+window.addEventListener("resize", updatePoints);
+
+// === Charger les points depuis JSON serveur
+function loadPoints() {
+  fetch(JSON_FILE)
+    .then(res => res.json())
+    .then(points => {
+      points.forEach(p => createPoint(p.x, p.y, p.url));
+    })
+    .catch(err => console.error("Erreur chargement points:", err));
+}
+
+// === Ajouter un point côté serveur
+function savePointServer(xPercent, yPercent, url) {
+  fetch('save_point.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({x: xPercent, y: yPercent, url: url})
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status !== "success") console.error("Erreur sauvegarde point:", data.message);
+  })
+  .catch(err => console.error("Erreur réseau:", err));
+}
+
+// === Admin login
+adminBtn.addEventListener("click", () => {
+  if (!editMode) {
+    const id = prompt("Identifiant admin :");
+    const pwd = prompt("Mot de passe :");
+    if (id === ADMIN_ID && pwd === ADMIN_PWD) {
+      editMode = true;
+      editHint.style.display = "block";
+      adminBtn.textContent = "🚪 Quitter édition";
+    } else {
+      alert("Mauvais identifiant ou mot de passe.");
+    }
+  } else {
+    editMode = false;
+    editHint.style.display = "none";
+    adminBtn.textContent = "👑 Admin";
+  }
+});
+
+// === Ajouter point au clic
+mapContainer.addEventListener("click", (e) => {
+  if (!editMode) return;
+  const rect = MapImage.getBoundingClientRect();
+  const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+  const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+
+  const url = prompt("Entre l’URL du point :");
+  if (!url) return;
+
+  createPoint(xPercent, yPercent, url);
+  savePointServer(xPercent, yPercent, url);
+});
+
+// === Initialisation
+loadPoints();
+</script>
+
 </body>
 </html>
