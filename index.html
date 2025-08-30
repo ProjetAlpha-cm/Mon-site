@@ -21,6 +21,12 @@ body {
   animation: pulse 1.5s infinite;
   filter: drop-shadow(0 0 15px #00ffcc);
 }
+.point img {
+  width:100%;
+  height:100%;
+  object-fit: contain; /* garde les proportions */
+  display:block;
+}
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(1); opacity:1; }
   50% { transform: translate(-50%, -50%) scale(1.1); opacity:0.8; }
@@ -55,6 +61,17 @@ body.glitching #glitch-overlay {
   60% { transform: translate(-3px,1px); filter: hue-rotate(10deg) contrast(0.9); }
   80% { transform: translate(3px,-1px); filter: hue-rotate(-10deg) contrast(1.1); }
   100% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+}
+
+#admin-btn {
+  position:fixed; top:10px; right:10px;
+  background:#222; color:#fff; border:1px solid #555;
+  border-radius:6px; padding:6px 10px; cursor:pointer;
+}
+#edit-hint {
+  position:fixed; top:50px; right:10px;
+  background:rgba(0,0,0,0.6); padding:5px 8px;
+  border-radius:4px; font-size:13px; display:none;
 }
 </style>
 </head>
@@ -120,8 +137,8 @@ function createPoint(xPercent, yPercent, url) {
   // Effet glitch sur toute la page + son
   point.addEventListener("mouseenter", () => {
     document.body.classList.add("glitching");
-    glitchSound.currentTime = 0; // remet au début
-    glitchSound.play().catch(()=>{}); // évite erreur autoplay
+    glitchSound.currentTime = 0; 
+    glitchSound.play().catch(()=>{}); 
   });
   point.addEventListener("mouseleave", () => {
     document.body.classList.remove("glitching");
