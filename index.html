@@ -7,6 +7,8 @@
 body {
   margin:0; background:#0b0b12; display:flex; justify-content:center;
   align-items:flex-start; min-height:100vh; font-family:sans-serif; color:#fff;
+  position: relative;
+  overflow:hidden;
 }
 .map-container {position:relative; display:inline-block; max-width:100%; max-height:100vh; overflow:auto;}
 .map-container img.Map {display:block; width:100%; height:auto;}
@@ -25,33 +27,34 @@ body {
   100% { transform: translate(-50%, -50%) scale(1); opacity:1; }
 }
 
-/* ---- Effet glitch ---- */
-.point img {
-  width:100%;
-  height:100%;
-  display:block;
+/* ---- Overlay glitch VHS ---- */
+#glitch-overlay {
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  pointer-events:none;
+  z-index:9998;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.05) 0px,
+    rgba(255,255,255,0.05) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  mix-blend-mode: screen;
+  opacity:0;
 }
-.point:hover img {
-  animation: glitch 0.5s infinite;
+body.glitching #glitch-overlay {
+  animation: glitchFade 0.3s infinite;
+  opacity:1;
 }
-@keyframes glitch {
-  0% { transform: translate(0); clip-path: inset(0 0 0 0); }
-  20% { transform: translate(-2px,2px) skew(0.5deg); clip-path: inset(20% 0 65% 0); }
-  40% { transform: translate(2px,-2px) skew(-0.5deg); clip-path: inset(40% 0 35% 0); }
-  60% { transform: translate(-1px,1px); clip-path: inset(60% 0 20% 0); }
-  80% { transform: translate(1px,-1px); clip-path: inset(80% 0 5% 0); }
-  100% { transform: translate(0); clip-path: inset(0 0 0 0); }
-}
-
-#admin-btn {
-  position:fixed; top:10px; right:10px;
-  background:#222; color:#fff; border:1px solid #555;
-  border-radius:6px; padding:6px 10px; cursor:pointer;
-}
-#edit-hint {
-  position:fixed; top:50px; right:10px;
-  background:rgba(0,0,0,0.6); padding:5px 8px;
-  border-radius:4px; font-size:13px; display:none;
+@keyframes glitchFade {
+  0% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+  20% { transform: translate(-5px,2px) skew(0.5deg); filter: hue-rotate(20deg) contrast(1.2); }
+  40% { transform: translate(5px,-2px) skew(-0.5deg); filter: hue-rotate(-20deg) contrast(1.2); }
+  60% { transform: translate(-3px,1px); filter: hue-rotate(10deg) contrast(0.9); }
+  80% { transform: translate(3px,-1px); filter: hue-rotate(-10deg) contrast(1.1); }
+  100% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
 }
 </style>
 </head>
@@ -60,6 +63,8 @@ body {
 <div class="map-container" id="map-container">
   <img src="Map.png" alt="Map" class="Map" id="Map">
 </div>
+
+<div id="glitch-overlay"></div>
 
 <button id="admin-btn">👑 Admin</button>
 <div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
@@ -107,6 +112,14 @@ function createPoint(xPercent, yPercent, url) {
   point.appendChild(img);
   mapContainer.appendChild(point);
   updatePoints();
+
+  // Effet glitch sur toute la page quand hover
+  point.addEventListener("mouseenter", () => {
+    document.body.classList.add("glitching");
+  });
+  point.addEventListener("mouseleave", () => {
+    document.body.classList.remove("glitching");
+  });
 
   // --- Mini-énigme popup ---
   point.addEventListener("click", (ev) => {
@@ -213,9 +226,3 @@ loadPoints();
 
 </body>
 </html>
-
-
-
-
-
-
