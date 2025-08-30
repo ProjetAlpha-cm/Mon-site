@@ -79,7 +79,7 @@ body {
 <script>
 let bypassSchedule = false;
 
-// --- Bypass avec le bouton secret ---
+// --- Bouton secret pour bypass ---
 document.getElementById("secret-btn").addEventListener("click", () => {
   const mdp = prompt("Mot de passe requis pour accès anticipé :");
   if(mdp === "123") {
@@ -92,65 +92,6 @@ document.getElementById("secret-btn").addEventListener("click", () => {
   }
 });
 
-// --- Contrôle horaire et countdown ---
-function startCountdown() {
-  const now = new Date();
-  let target = new Date();
-  target.setHours(20,0,0,0);
-  if(now >= target) target.setDate(target.getDate()+1);
-
-  if((now.getHours() >=20 && now.getHours()<21) || bypassSchedule) {
-    initMap(); // Accès autorisé
-    return;
-  }
-
-  const countdownContainer = document.createElement('div');
-  countdownContainer.id='countdown';
-  countdownContainer.style.cssText = `
-    display:flex; flex-direction:column; justify-content:center; align-items:center;
-    height:100vh; color:red; font-family:sans-serif; text-align:center;
-  `;
-  countdownContainer.innerHTML = `
-    <div style="font-size:36px; margin-bottom:20px;">Ce site sera accessible dans</div>
-    <div id="timer" style="font-size:96px; font-weight:bold;">00:00:00</div>
-  `;
-  document.body.appendChild(countdownContainer);
-  const timerEl = document.getElementById("timer");
-
-  function updateCountdown() {
-    const now = new Date();
-    let diff = target - now;
-    if(diff <=0) {
-      countdownContainer.remove();
-      initMap();
-      return;
-    }
-    const h = Math.floor(diff / (1000*60*60));
-    const m = Math.floor((diff % (1000*60*60)) / (1000*60));
-    const s = Math.floor((diff % (1000*60)) / 1000);
-    timerEl.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-  }
-  updateCountdown();
-  setInterval(updateCountdown,1000);
-
-  // glitch aléatoire
-  function glitchCountdown() {
-    const timer = document.getElementById("timer");
-    timer.innerHTML = timer.textContent.split('').map(c => `<span>${c}</span>`).join('');
-    const spans = timer.querySelectorAll('span');
-    setInterval(() => {
-      spans.forEach(span => {
-        const x = (Math.random()-0.5)*10;
-        const y = (Math.random()-0.5)*10;
-        const hue = Math.floor(Math.random()*360);
-        span.style.transform = `translate(${x}px,${y}px)`;
-        span.style.color = `hsl(${hue},100%,50%)`;
-      });
-    },100);
-  }
-  glitchCountdown();
-}
-
 // --- Variables et Firebase ---
 const ADMIN_ID = "admin";
 const ADMIN_PWD = "1234";
@@ -158,12 +99,7 @@ const POINT_IMG = "point.gif";
 let editMode=false;
 const adminBtn=document.getElementById("admin-btn");
 const editHint=document.getElementById("edit-hint");
-const mapContainer=document.createElement("div");
-mapContainer.className="map-container";
-document.body.appendChild(mapContainer);
-const MapImage=document.createElement("img");
-MapImage.id="Map"; MapImage.className="Map"; MapImage.src="Map.png";
-mapContainer.appendChild(MapImage);
+let mapContainer, MapImage;
 const glitchSound=new Audio("glitch.mp3"); glitchSound.volume=0.5;
 
 const firebaseConfig = {
@@ -178,9 +114,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-// --- Fonction initMap ---
+// --- Initialiser la map uniquement quand l'accès est autorisé ---
 function initMap() {
-  mapContainer.style.display="block";
+  if(mapContainer) return; // éviter double création
+  mapContainer=document.createElement("div");
+  mapContainer.className="map-container";
+  document.body.appendChild(mapContainer);
+
+  MapImage=document.createElement("img");
+  MapImage.id="Map"; MapImage.className="Map"; MapImage.src="Map.png";
+  mapContainer.appendChild(MapImage);
+
   loadPoints();
 }
 
@@ -224,8 +168,9 @@ function createPoint(xPercent, yPercent, url) {
   });
 }
 
-// --- Repositionne points ---
+// --- Repositionner points ---
 function updatePoints() {
+  if(!MapImage) return;
   const rect=MapImage.getBoundingClientRect();
   document.querySelectorAll(".point").forEach(p=>{
     const x=parseFloat(p.dataset.x);
@@ -262,8 +207,9 @@ adminBtn.addEventListener("click",()=>{
 });
 
 // --- Ajouter point au clic ---
-mapContainer.addEventListener("click",e=>{
+document.addEventListener("click", e=>{
   if(!editMode) return;
+  if(!mapContainer) return;
   const rect=MapImage.getBoundingClientRect();
   const xPercent=((e.clientX-rect.left)/rect.width)*100;
   const yPercent=((e.clientY-rect.top)/rect.height)*100;
@@ -273,9 +219,69 @@ mapContainer.addEventListener("click",e=>{
   savePointFirebase(xPercent,yPercent,url);
 });
 
-// --- Lancer countdown / map ---
+// --- Countdown ---
+function startCountdown() {
+  const now=new Date();
+  let target=new Date();
+  target.setHours(20,0,0,0);
+  if(now>=target) target.setDate(target.getDate()+1);
+
+  if((now.getHours()>=20 && now.getHours()<21) || bypassSchedule) {
+    initMap();
+    return;
+  }
+
+  const countdownContainer=document.createElement('div');
+  countdownContainer.id='countdown';
+  countdownContainer.style.cssText = `
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    height:100vh; color:red; font-family:sans-serif; text-align:center;
+  `;
+  countdownContainer.innerHTML = `
+    <div style="font-size:36px; margin-bottom:20px;">Ce site sera accessible dans</div>
+    <div id="timer" style="font-size:96px; font-weight:bold;">00:00:00</div>
+  `;
+  document.body.appendChild(countdownContainer);
+  const timerEl=document.getElementById("timer");
+
+  function updateCountdown() {
+    const now=new Date();
+    let diff=target-now;
+    if(diff<=0) {
+      countdownContainer.remove();
+      initMap();
+      return;
+    }
+    const h=Math.floor(diff / (1000*60*60));
+    const m=Math.floor((diff % (1000*60*60)) / (1000*60));
+    const s=Math.floor((diff % (1000*60)) / 1000);
+    timerEl.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }
+  updateCountdown();
+  setInterval(updateCountdown,1000);
+
+  // glitch aléatoire
+  function glitchCountdown() {
+    const timer=document.getElementById("timer");
+    timer.innerHTML=timer.textContent.split('').map(c=>`<span>${c}</span>`).join('');
+    const spans=timer.querySelectorAll('span');
+    setInterval(()=>{
+      spans.forEach(span=>{
+        const x=(Math.random()-0.5)*10;
+        const y=(Math.random()-0.5)*10;
+        const hue=Math.floor(Math.random()*360);
+        span.style.transform=`translate(${x}px,${y}px)`;
+        span.style.color=`hsl(${hue},100%,50%)`;
+      });
+    },100);
+  }
+  glitchCountdown();
+}
+
 startCountdown();
 </script>
-
 </body>
 </html>
+
+</html>
+
