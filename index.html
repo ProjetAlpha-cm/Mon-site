@@ -84,6 +84,10 @@ const editHint = document.getElementById("edit-hint");
 const mapContainer = document.getElementById("map-container");
 const MapImage = document.getElementById("Map");
 
+// --- Son glitch ---
+const glitchSound = new Audio("glitch.mp3"); // Mets ton fichier son ici
+glitchSound.volume = 0.5; // volume à 50%
+
 // --- Firebase config ---
 const firebaseConfig = {
   apiKey: "AIzaSyCPMSVPXjvfnu7ZPjVQPpl2DWmWqUxqtmU",
@@ -113,9 +117,11 @@ function createPoint(xPercent, yPercent, url) {
   mapContainer.appendChild(point);
   updatePoints();
 
-  // Effet glitch sur toute la page quand hover
+  // Effet glitch sur toute la page + son
   point.addEventListener("mouseenter", () => {
     document.body.classList.add("glitching");
+    glitchSound.currentTime = 0; // remet au début
+    glitchSound.play().catch(()=>{}); // évite erreur autoplay
   });
   point.addEventListener("mouseleave", () => {
     document.body.classList.remove("glitching");
