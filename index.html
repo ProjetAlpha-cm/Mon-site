@@ -39,7 +39,7 @@ body {
   100% { transform: translate(-50%, -50%) scale(1); opacity:1; }
 }
 
-/* Glitch direct sur l'image Map.png */
+/* Glitch Map */
 #Map.glitch {
   animation: mapGlitch 0.5s infinite;
 }
@@ -87,7 +87,7 @@ body {
 
 <button id="admin-btn">👑 Admin</button>
 <div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
-<div id="secret-btn"></div> <!-- Coin invisible pour bypass -->
+<div id="secret-btn"></div> <!-- Coin invisible -->
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -98,11 +98,16 @@ let bypassSchedule = false;
 
 // --- Bypass avec le bouton secret ---
 document.getElementById("secret-btn").addEventListener("click", () => {
-  bypassSchedule = true;
-  alert("Accès anticipé activé !");
+  const mdp = prompt("Mot de passe requis pour accès anticipé :");
+  if(mdp === "123") {
+    bypassSchedule = true;
+    alert("Accès anticipé activé !");
+  } else {
+    alert("Mot de passe incorrect !");
+  }
 });
 
-// --- Contrôle d'accès horaire avec compte à rebours ---
+// --- Contrôle horaire ---
 function startCountdown() {
   const now = new Date();
   let target = new Date();
@@ -113,25 +118,27 @@ function startCountdown() {
 
   if (now >= target) target.setDate(target.getDate()+1);
 
-  document.body.innerHTML = `
-    <div id="countdown" style="
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        align-items:center;
-        height:100vh;
-        color:red;
-        font-family:sans-serif;
-        text-align:center;
-    ">
+  // --- Créer conteneur countdown sans remplacer le body ---
+  const countdownContainer = document.createElement('div');
+  countdownContainer.id = 'countdown';
+  countdownContainer.style.cssText = `
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      color:red;
+      font-family:sans-serif;
+      text-align:center;
+  `;
+  countdownContainer.innerHTML = `
       <div style="font-size:36px; margin-bottom:20px;">
         Ce site sera accessible dans
       </div>
-      <div id="timer" style="font-size:96px; font-weight:bold;">
-        00:00:00
-      </div>
-    </div>
+      <div id="timer" style="font-size:96px; font-weight:bold;">00:00:00</div>
   `;
+  document.body.appendChild(countdownContainer);
+
   const timerEl = document.getElementById("timer");
 
   function updateCountdown() {
@@ -141,16 +148,14 @@ function startCountdown() {
     const h = Math.floor(diff / (1000*60*60));
     const m = Math.floor((diff % (1000*60*60)) / (1000*60));
     const s = Math.floor((diff % (1000*60)) / 1000);
-    timerEl.textContent = 
-      `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    timerEl.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
   }
   updateCountdown();
   setInterval(updateCountdown,1000);
 
-  // --- Glitch aléatoire sur countdown ---
+  // --- Glitch aléatoire ---
   function glitchCountdown() {
     const timer = document.getElementById("timer");
-    if (!timer) return;
     timer.innerHTML = timer.textContent
       .split('')
       .map(c => `<span>${c}</span>`)
@@ -171,7 +176,7 @@ function startCountdown() {
   return true;
 }
 
-// --- Vérification horaire avec possibilité de bypass ---
+// --- Vérification horaire ---
 if (!bypassSchedule && startCountdown()) throw new Error("Compte à rebours actif");
 
 // --- Variables et Firebase ---
@@ -214,7 +219,6 @@ function createPoint(xPercent, yPercent, url) {
   mapContainer.appendChild(point);
   updatePoints();
 
-  // Glitch + son
   point.addEventListener("mouseenter", () => {
     MapImage.classList.add("glitch");
     glitchSound.currentTime = 0;
@@ -224,7 +228,6 @@ function createPoint(xPercent, yPercent, url) {
     MapImage.classList.remove("glitch");
   });
 
-  // Popup mini-énigme
   point.addEventListener("click", (ev) => {
     ev.stopPropagation();
     const imageUrl = point.dataset.img;
