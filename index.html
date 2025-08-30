@@ -41,7 +41,7 @@ body {
 
 /* Glitch direct sur l'image Map.png */
 #Map.glitch {
-  animation: mapGlitch 0.5s infinite; /* durée 0.5s */
+  animation: mapGlitch 0.5s infinite;
 }
 @keyframes mapGlitch {
   0%   { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
@@ -68,6 +68,15 @@ body {
   background:rgba(0,0,0,0.6); padding:5px 8px;
   border-radius:4px; font-size:13px; display:none;
 }
+
+/* Bouton secret invisible */
+#secret-btn {
+  position:fixed;
+  top:0; left:0;
+  width:50px; height:50px;
+  z-index:9999;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -78,24 +87,32 @@ body {
 
 <button id="admin-btn">👑 Admin</button>
 <div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
+<div id="secret-btn"></div> <!-- Coin invisible pour bypass -->
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
 <script>
+let bypassSchedule = false;
+
+// --- Bypass avec le bouton secret ---
+document.getElementById("secret-btn").addEventListener("click", () => {
+  bypassSchedule = true;
+  alert("Accès anticipé activé !");
+});
+
 // --- Contrôle d'accès horaire avec compte à rebours ---
 function startCountdown() {
   const now = new Date();
   let target = new Date();
-  target.setHours(20,0,0,0); // aujourd'hui 20h
+  target.setHours(20,0,0,0);
 
   const hours = now.getHours();
-  if (hours >= 20 && hours < 21) return false; // site accessible
+  if (hours >= 20 && hours < 21) return false;
 
-  if (now >= target) target.setDate(target.getDate()+1); // prochaine 20h
+  if (now >= target) target.setDate(target.getDate()+1);
 
-  // Affichage du compte à rebours
   document.body.innerHTML = `
     <div id="countdown" style="
         display:flex;
@@ -127,7 +144,6 @@ function startCountdown() {
     timerEl.textContent = 
       `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
   }
-
   updateCountdown();
   setInterval(updateCountdown,1000);
 
@@ -155,7 +171,8 @@ function startCountdown() {
   return true;
 }
 
-if (startCountdown()) throw new Error("Compte à rebours actif");
+// --- Vérification horaire avec possibilité de bypass ---
+if (!bypassSchedule && startCountdown()) throw new Error("Compte à rebours actif");
 
 // --- Variables et Firebase ---
 const ADMIN_ID = "admin";
