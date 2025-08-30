@@ -10,8 +10,14 @@ body {
   position: relative;
   overflow:hidden;
 }
-.map-container {position:relative; display:inline-block; max-width:100%; max-height:100vh; overflow:auto;}
-.map-container img.Map {display:block; width:100%; height:auto;}
+.map-container {
+  position:relative; display:inline-block; max-width:100%; max-height:100vh; overflow:auto;
+}
+.map-container img.Map {
+  display:block; width:100%; height:auto;
+}
+
+/* Points */
 .point {
   position:absolute;
   width:100px;
@@ -24,7 +30,7 @@ body {
 .point img {
   width:100%;
   height:100%;
-  object-fit: contain; /* garde les proportions */
+  object-fit: contain;
   display:block;
 }
 @keyframes pulse {
@@ -33,33 +39,16 @@ body {
   100% { transform: translate(-50%, -50%) scale(1); opacity:1; }
 }
 
-/* ---- Overlay glitch VHS ---- */
-#glitch-overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  pointer-events:none;
-  z-index:9998;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255,255,255,0.05) 0px,
-    rgba(255,255,255,0.05) 2px,
-    transparent 2px,
-    transparent 4px
-  );
-  mix-blend-mode: screen;
-  opacity:0;
+/* Glitch direct sur l'image Map.png */
+#Map.glitch {
+  animation: mapGlitch 0.3s infinite;
 }
-body.glitching #glitch-overlay {
-  animation: glitchFade 0.3s infinite;
-  opacity:1;
-}
-@keyframes glitchFade {
-  0% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
-  20% { transform: translate(-5px,2px) skew(0.5deg); filter: hue-rotate(20deg) contrast(1.2); }
-  40% { transform: translate(5px,-2px) skew(-0.5deg); filter: hue-rotate(-20deg) contrast(1.2); }
-  60% { transform: translate(-3px,1px); filter: hue-rotate(10deg) contrast(0.9); }
-  80% { transform: translate(3px,-1px); filter: hue-rotate(-10deg) contrast(1.1); }
+@keyframes mapGlitch {
+  0%   { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+  20%  { transform: translate(-5px,2px) skew(0.5deg); filter: hue-rotate(20deg) contrast(1.2); }
+  40%  { transform: translate(5px,-2px) skew(-0.5deg); filter: hue-rotate(-20deg) contrast(1.2); }
+  60%  { transform: translate(-3px,1px); filter: hue-rotate(10deg) contrast(0.9); }
+  80%  { transform: translate(3px,-1px); filter: hue-rotate(-10deg) contrast(1.1); }
   100% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
 }
 
@@ -81,8 +70,6 @@ body.glitching #glitch-overlay {
   <img src="Map.png" alt="Map" class="Map" id="Map">
 </div>
 
-<div id="glitch-overlay"></div>
-
 <button id="admin-btn">👑 Admin</button>
 <div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
 
@@ -93,7 +80,7 @@ body.glitching #glitch-overlay {
 <script>
 const ADMIN_ID = "admin";
 const ADMIN_PWD = "1234";
-const POINT_IMG = "point.gif"; // GIF agrandi via CSS
+const POINT_IMG = "point.gif"; // GIF du point lumineux
 
 let editMode = false;
 const adminBtn = document.getElementById("admin-btn");
@@ -102,8 +89,8 @@ const mapContainer = document.getElementById("map-container");
 const MapImage = document.getElementById("Map");
 
 // --- Son glitch ---
-const glitchSound = new Audio("glitch.mp3"); // Mets ton fichier son ici
-glitchSound.volume = 0.5; // volume à 50%
+const glitchSound = new Audio("glitch.mp3"); // mettre ton fichier son ici
+glitchSound.volume = 0.5;
 
 // --- Firebase config ---
 const firebaseConfig = {
@@ -111,7 +98,7 @@ const firebaseConfig = {
   authDomain: "pointpa-9340d.firebaseapp.com",
   databaseURL: "https://pointpa-9340d-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "pointpa-9340d",
-  storageBucket: "pointpa-9340d.firebasestorage.app",
+  storageBucket: "pointpa-9340d.appspot.com",
   messagingSenderId: "6068299778",
   appId: "1:6068299778:web:3c35e60025d7bdbc131f1b"
 };
@@ -129,19 +116,18 @@ function createPoint(xPercent, yPercent, url) {
   const img = document.createElement("img");
   img.src = POINT_IMG;
   img.alt = "Point lumineux";
-
   point.appendChild(img);
   mapContainer.appendChild(point);
   updatePoints();
 
-  // Effet glitch sur toute la page + son
+  // --- Glitch et son au survol ---
   point.addEventListener("mouseenter", () => {
-    document.body.classList.add("glitching");
-    glitchSound.currentTime = 0; 
-    glitchSound.play().catch(()=>{}); 
+    MapImage.classList.add("glitch");
+    glitchSound.currentTime = 0;
+    glitchSound.play().catch(()=>{});
   });
   point.addEventListener("mouseleave", () => {
-    document.body.classList.remove("glitching");
+    MapImage.classList.remove("glitch");
   });
 
   // --- Mini-énigme popup ---
