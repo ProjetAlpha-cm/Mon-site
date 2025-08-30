@@ -72,14 +72,14 @@ const sounds=["sound1.mp3","sound2.mp3","sound3.mp3"];
 function playRandomSound(){const s=new Audio(sounds[Math.floor(Math.random()*sounds.length)]);s.volume=0.5;s.play();}
 
 // --- Firebase config ---
-const firebaseConfig={
-  apiKey:"TON_API_KEY",
-  authDomain:"TON_PROJET.firebaseapp.com",
-  databaseURL:"https://TON_PROJET.firebaseio.com",
-  projectId:"TON_PROJET",
-  storageBucket:"TON_PROJET.appspot.com",
-  messagingSenderId:"SENDER_ID",
-  appId:"APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyCpaNYX7fFEyvYWHlSsRoYhU6IsjKDAf6c",
+  authDomain: "mappointsproject.firebaseapp.com",
+  databaseURL: "https://mappointsproject-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mappointsproject",
+  storageBucket: "mappointsproject.firebasestorage.app",
+  messagingSenderId: "38040390635",
+  appId: "1:38040390635:web:069d2fd886af8cbefba7ae"
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
@@ -208,3 +208,4 @@ if(MapImage.complete) {updatePoints(); loadPoints();}
 
 </body>
 </html>
+
