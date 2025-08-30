@@ -41,7 +41,7 @@ body {
 
 /* Glitch direct sur l'image Map.png */
 #Map.glitch {
-   animation: mapGlitch 0.5s linear infinite; /* durée 0.5s */
+  animation: mapGlitch 0.5s infinite; /* durée 0.5s */
 }
 @keyframes mapGlitch {
   0%   { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
@@ -50,6 +50,12 @@ body {
   60%  { transform: translate(-3px,1px); filter: hue-rotate(10deg) contrast(0.9); }
   80%  { transform: translate(3px,-1px); filter: hue-rotate(-10deg) contrast(1.1); }
   100% { transform: translate(0,0) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+}
+
+/* Countdown glitch */
+#timer.glitch span {
+  display: inline-block;
+  position: relative;
 }
 
 #admin-btn {
@@ -91,8 +97,22 @@ function startCountdown() {
 
   // Affichage du compte à rebours
   document.body.innerHTML = `
-    <div id="countdown" style="display:flex;justify-content:center;align-items:center;height:100vh;color:red;font-family:sans-serif;font-size:48px;text-align:center;">
-      Le site sera accessible dans <span id="timer"></span>
+    <div id="countdown" style="
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        color:red;
+        font-family:sans-serif;
+        text-align:center;
+    ">
+      <div style="font-size:36px; margin-bottom:20px;">
+        Ce site sera accessible dans
+      </div>
+      <div id="timer" style="font-size:96px; font-weight:bold;">
+        00:00:00
+      </div>
     </div>
   `;
   const timerEl = document.getElementById("timer");
@@ -110,6 +130,28 @@ function startCountdown() {
 
   updateCountdown();
   setInterval(updateCountdown,1000);
+
+  // --- Glitch aléatoire sur countdown ---
+  function glitchCountdown() {
+    const timer = document.getElementById("timer");
+    if (!timer) return;
+    timer.innerHTML = timer.textContent
+      .split('')
+      .map(c => `<span>${c}</span>`)
+      .join('');
+    const spans = timer.querySelectorAll('span');
+    setInterval(() => {
+      spans.forEach(span => {
+        const x = (Math.random()-0.5)*10;
+        const y = (Math.random()-0.5)*10;
+        const hue = Math.floor(Math.random()*360);
+        span.style.transform = `translate(${x}px,${y}px)`;
+        span.style.color = `hsl(${hue},100%,50%)`;
+      });
+    },100);
+  }
+  glitchCountdown();
+
   return true;
 }
 
