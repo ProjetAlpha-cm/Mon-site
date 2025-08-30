@@ -7,8 +7,7 @@
 body {
   margin:0; background:#0b0b12; display:flex; justify-content:center;
   align-items:flex-start; min-height:100vh; font-family:sans-serif; color:#fff;
-  position: relative;
-  overflow:hidden;
+  position: relative; overflow:hidden;
 }
 .map-container {
   position:relative; display:inline-block; max-width:100%; max-height:100vh; overflow:auto;
@@ -19,19 +18,13 @@ body {
 
 /* Points */
 .point {
-  position:absolute;
-  width:100px;
-  height:100px;
-  transform:translate(-50%, -50%);
-  cursor:pointer;
+  position:absolute; width:100px; height:100px;
+  transform:translate(-50%, -50%); cursor:pointer;
   animation: pulse 1.5s infinite;
   filter: drop-shadow(0 0 15px #00ffcc);
 }
 .point img {
-  width:100%;
-  height:100%;
-  object-fit: contain;
-  display:block;
+  width:100%; height:100%; object-fit: contain; display:block;
 }
 @keyframes pulse {
   0% { transform: translate(-50%, -50%) scale(1); opacity:1; }
@@ -53,10 +46,7 @@ body {
 }
 
 /* Countdown glitch */
-#timer.glitch span {
-  display: inline-block;
-  position: relative;
-}
+#timer span { display:inline-block; position: relative; }
 
 #admin-btn {
   position:fixed; top:10px; right:10px;
@@ -71,23 +61,16 @@ body {
 
 /* Bouton secret invisible */
 #secret-btn {
-  position:fixed;
-  top:0; left:0;
-  width:50px; height:50px;
-  z-index:9999;
-  cursor:pointer;
+  position:fixed; top:0; left:0; width:50px; height:50px;
+  z-index:9999; cursor:pointer;
 }
 </style>
 </head>
 <body>
 
-<div class="map-container" id="map-container">
-  <img src="Map.png" alt="Map" class="Map" id="Map">
-</div>
-
+<div id="secret-btn"></div> <!-- Coin invisible -->
 <button id="admin-btn">👑 Admin</button>
 <div id="edit-hint">Mode édition actif — Clique sur la map pour ajouter un point</div>
-<div id="secret-btn"></div> <!-- Coin invisible -->
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -101,50 +84,47 @@ document.getElementById("secret-btn").addEventListener("click", () => {
   const mdp = prompt("Mot de passe requis pour accès anticipé :");
   if(mdp === "123") {
     bypassSchedule = true;
+    document.getElementById('countdown')?.remove();
+    initMap();
     alert("Accès anticipé activé !");
   } else {
     alert("Mot de passe incorrect !");
   }
 });
 
-// --- Contrôle horaire ---
+// --- Contrôle horaire et countdown ---
 function startCountdown() {
   const now = new Date();
   let target = new Date();
   target.setHours(20,0,0,0);
+  if(now >= target) target.setDate(target.getDate()+1);
 
-  const hours = now.getHours();
-  if (hours >= 20 && hours < 21) return false;
+  if((now.getHours() >=20 && now.getHours()<21) || bypassSchedule) {
+    initMap(); // Accès autorisé
+    return;
+  }
 
-  if (now >= target) target.setDate(target.getDate()+1);
-
-  // --- Créer conteneur countdown sans remplacer le body ---
   const countdownContainer = document.createElement('div');
-  countdownContainer.id = 'countdown';
+  countdownContainer.id='countdown';
   countdownContainer.style.cssText = `
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-      color:red;
-      font-family:sans-serif;
-      text-align:center;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    height:100vh; color:red; font-family:sans-serif; text-align:center;
   `;
   countdownContainer.innerHTML = `
-      <div style="font-size:36px; margin-bottom:20px;">
-        Ce site sera accessible dans
-      </div>
-      <div id="timer" style="font-size:96px; font-weight:bold;">00:00:00</div>
+    <div style="font-size:36px; margin-bottom:20px;">Ce site sera accessible dans</div>
+    <div id="timer" style="font-size:96px; font-weight:bold;">00:00:00</div>
   `;
   document.body.appendChild(countdownContainer);
-
   const timerEl = document.getElementById("timer");
 
   function updateCountdown() {
     const now = new Date();
     let diff = target - now;
-    if (diff <= 0) location.reload();
+    if(diff <=0) {
+      countdownContainer.remove();
+      initMap();
+      return;
+    }
     const h = Math.floor(diff / (1000*60*60));
     const m = Math.floor((diff % (1000*60*60)) / (1000*60));
     const s = Math.floor((diff % (1000*60)) / 1000);
@@ -153,13 +133,10 @@ function startCountdown() {
   updateCountdown();
   setInterval(updateCountdown,1000);
 
-  // --- Glitch aléatoire ---
+  // glitch aléatoire
   function glitchCountdown() {
     const timer = document.getElementById("timer");
-    timer.innerHTML = timer.textContent
-      .split('')
-      .map(c => `<span>${c}</span>`)
-      .join('');
+    timer.innerHTML = timer.textContent.split('').map(c => `<span>${c}</span>`).join('');
     const spans = timer.querySelectorAll('span');
     setInterval(() => {
       spans.forEach(span => {
@@ -172,25 +149,22 @@ function startCountdown() {
     },100);
   }
   glitchCountdown();
-
-  return true;
 }
-
-// --- Vérification horaire ---
-if (!bypassSchedule && startCountdown()) throw new Error("Compte à rebours actif");
 
 // --- Variables et Firebase ---
 const ADMIN_ID = "admin";
 const ADMIN_PWD = "1234";
 const POINT_IMG = "point.gif";
-let editMode = false;
-const adminBtn = document.getElementById("admin-btn");
-const editHint = document.getElementById("edit-hint");
-const mapContainer = document.getElementById("map-container");
-const MapImage = document.getElementById("Map");
-
-const glitchSound = new Audio("glitch.mp3");
-glitchSound.volume = 0.5;
+let editMode=false;
+const adminBtn=document.getElementById("admin-btn");
+const editHint=document.getElementById("edit-hint");
+const mapContainer=document.createElement("div");
+mapContainer.className="map-container";
+document.body.appendChild(mapContainer);
+const MapImage=document.createElement("img");
+MapImage.id="Map"; MapImage.className="Map"; MapImage.src="Map.png";
+mapContainer.appendChild(MapImage);
+const glitchSound=new Audio("glitch.mp3"); glitchSound.volume=0.5;
 
 const firebaseConfig = {
   apiKey: "AIzaSyCPMSVPXjvfnu7ZPjVQPpl2DWmWqUxqtmU",
@@ -202,71 +176,57 @@ const firebaseConfig = {
   appId: "1:6068299778:web:3c35e60025d7bdbc131f1b"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
+
+// --- Fonction initMap ---
+function initMap() {
+  mapContainer.style.display="block";
+  loadPoints();
+}
 
 // --- Créer un point ---
 function createPoint(xPercent, yPercent, url) {
-  const point = document.createElement("div");
-  point.className = "point";
-  point.dataset.x = xPercent;
-  point.dataset.y = yPercent;
-  point.dataset.img = url;
+  const point=document.createElement("div");
+  point.className="point";
+  point.dataset.x=xPercent;
+  point.dataset.y=yPercent;
+  point.dataset.img=url;
 
-  const img = document.createElement("img");
-  img.src = POINT_IMG;
-  img.alt = "Point lumineux";
+  const img=document.createElement("img");
+  img.src=POINT_IMG; img.alt="Point lumineux";
   point.appendChild(img);
   mapContainer.appendChild(point);
   updatePoints();
 
-  point.addEventListener("mouseenter", () => {
+  point.addEventListener("mouseenter",()=>{
     MapImage.classList.add("glitch");
-    glitchSound.currentTime = 0;
-    glitchSound.play().catch(()=>{});
+    glitchSound.currentTime=0; glitchSound.play().catch(()=>{});
   });
-  point.addEventListener("mouseleave", () => {
-    MapImage.classList.remove("glitch");
-  });
+  point.addEventListener("mouseleave",()=>{MapImage.classList.remove("glitch");});
 
-  point.addEventListener("click", (ev) => {
+  point.addEventListener("click",(ev)=>{
     ev.stopPropagation();
-    const imageUrl = point.dataset.img;
-    const popup = document.createElement("div");
-    popup.style.position="fixed";
-    popup.style.top=0; popup.style.left=0;
-    popup.style.width="100%"; popup.style.height="100%";
-    popup.style.background="rgba(0,0,0,0.9)";
-    popup.style.display="flex";
-    popup.style.flexDirection="column";
-    popup.style.justifyContent="center";
-    popup.style.alignItems="center";
-    popup.style.zIndex=9999;
+    const popup=document.createElement("div");
+    popup.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999";
 
-    const imgPopup = document.createElement("img");
-    imgPopup.src = imageUrl;
-    imgPopup.style.maxWidth="80%";
-    imgPopup.style.maxHeight="50%";
-    imgPopup.style.border="4px solid #00ffcc";
-    imgPopup.style.borderRadius="8px";
-    imgPopup.style.marginBottom="20px";
+    const imgPopup=document.createElement("img");
+    imgPopup.src=point.dataset.img;
+    imgPopup.style.cssText="max-width:80%;max-height:50%;border:4px solid #00ffcc;border-radius:8px;margin-bottom:20px";
 
-    const enigme = document.createElement("div");
+    const enigme=document.createElement("div");
     enigme.textContent="Mini-énigme : Quel est le code secret visible sur l'image ?";
-    enigme.style.color="#00ffcc";
-    enigme.style.fontSize="20px";
-    enigme.style.textAlign="center";
+    enigme.style.cssText="color:#00ffcc;font-size:20px;text-align:center";
 
     popup.appendChild(imgPopup);
     popup.appendChild(enigme);
     document.body.appendChild(popup);
-
-    popup.addEventListener("click", ()=>popup.remove());
+    popup.addEventListener("click",()=>popup.remove());
   });
 }
 
 // --- Repositionne points ---
 function updatePoints() {
-  const rect = MapImage.getBoundingClientRect();
+  const rect=MapImage.getBoundingClientRect();
   document.querySelectorAll(".point").forEach(p=>{
     const x=parseFloat(p.dataset.x);
     const y=parseFloat(p.dataset.y);
@@ -274,16 +234,14 @@ function updatePoints() {
     p.style.top=(y*rect.height/100)+"px";
   });
 }
-window.addEventListener("resize", updatePoints);
+window.addEventListener("resize",updatePoints);
 
 // --- Charger points depuis Firebase ---
 function loadPoints() {
-  db.ref('points').on('value', snapshot=>{
+  db.ref('points').on('value',snapshot=>{
     mapContainer.querySelectorAll('.point').forEach(p=>p.remove());
-    const points = snapshot.val();
-    if(points){
-      Object.values(points).forEach(p=>createPoint(p.x,p.y,p.url));
-    }
+    const points=snapshot.val();
+    if(points){ Object.values(points).forEach(p=>createPoint(p.x,p.y,p.url)); }
   });
 }
 
@@ -294,24 +252,17 @@ function savePointFirebase(xPercent,yPercent,url){
 }
 
 // --- Admin login ---
-adminBtn.addEventListener("click", ()=>{
+adminBtn.addEventListener("click",()=>{
   if(!editMode){
     const id=prompt("Identifiant admin :");
     const pwd=prompt("Mot de passe :");
-    if(id===ADMIN_ID && pwd===ADMIN_PWD){
-      editMode=true;
-      editHint.style.display="block";
-      adminBtn.textContent="🚪 Quitter édition";
+    if(id===ADMIN_ID && pwd===ADMIN_PWD){ editMode=true; editHint.style.display="block"; adminBtn.textContent="🚪 Quitter édition";
     } else alert("Mauvais identifiant ou mot de passe.");
-  } else {
-    editMode=false;
-    editHint.style.display="none";
-    adminBtn.textContent="👑 Admin";
-  }
+  } else { editMode=false; editHint.style.display="none"; adminBtn.textContent="👑 Admin"; }
 });
 
 // --- Ajouter point au clic ---
-mapContainer.addEventListener("click", e=>{
+mapContainer.addEventListener("click",e=>{
   if(!editMode) return;
   const rect=MapImage.getBoundingClientRect();
   const xPercent=((e.clientX-rect.left)/rect.width)*100;
@@ -322,8 +273,8 @@ mapContainer.addEventListener("click", e=>{
   savePointFirebase(xPercent,yPercent,url);
 });
 
-// --- Init ---
-loadPoints();
+// --- Lancer countdown / map ---
+startCountdown();
 </script>
 
 </body>
